@@ -1,22 +1,27 @@
+import asyncio
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 import uvicorn
 
-from api.api import router
-from core.database import create_table, delete_table
+from api.api import api_router
+from auth.auth import auth_router
+
+from db.database import create_table, delete_table
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await delete_table()
-    await create_table()
+    await asyncio.to_thread(delete_table)
+    await asyncio.to_thread(create_table)
     print('[INFO]    База перезапущена...')
     yield
     print('[INFO]    Выключение')
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(router)
+app.include_router(api_router)
+app.include_router(auth_router)
 
 
 if __name__ == '__main__':

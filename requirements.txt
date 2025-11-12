@@ -2,6 +2,9 @@ sqlalchemy
 aiosqlite
 
 fastapi
+uvicorn
+
 pydantic
 pydantic-settings
-uvicorn
+
+AuthX

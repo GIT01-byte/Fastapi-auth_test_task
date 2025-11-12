@@ -1,10 +1,8 @@
 from typing import Optional
-from pydantic import BaseModel
-from sqlalchemy import Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy.orm import Mapped, mapped_column
+
+from db.database import Base
 
 class EmployeesOrm(Base):
     __tablename__ = 'employees' 
@@ -13,4 +11,5 @@ class EmployeesOrm(Base):
     name: Mapped[str]
     last_name: Mapped[str]
     phone: Mapped[int]
-    image_url: Mapped[str]
+    image_url: Mapped[Optional[str]] = mapped_column(nullable=True)
+
