@@ -1,0 +1,10 @@
+sqlalchemy
+aiosqlite
+
+fastapi
+uvicorn
+
+pydantic
+pydantic-settings
+
+AuthX
