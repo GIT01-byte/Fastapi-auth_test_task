@@ -24,12 +24,13 @@
     ```
     
 3. Установи публичный и приватный ключи безопастности:
+    В папку "app/auth/utils" выполните команду
    ```bash
-   cd app/auth/utils
    python gen_keys
    ```
    
 5.  **Запусти сервер:**
+   В папке "app" выполните команду
     ```bash
     uvicorn main:app --reload
     ```
