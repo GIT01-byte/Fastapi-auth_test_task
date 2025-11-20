@@ -13,7 +13,7 @@ from schemas.users import UserScheme, TokenInfo
 
 # http_bearer = HTTPBearer()
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl='/jwt_auth/login/'
+    tokenUrl='/users/login/'
     )
 
 router = APIRouter()

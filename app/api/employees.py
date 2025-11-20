@@ -38,11 +38,11 @@ def add_employee(
     }
 
 
-@router.post('/reg_user',
-    summary='Зарегистрировать пользователя',
-    )
-def registr_user(user: UserScheme):
-    return{
-        'message': f'Добавлен пользователь: {user.username}',
-    }
+# @router.post('/reg_user',
+#     summary='Зарегистрировать пользователя',
+#     )
+# def registr_user(user: UserScheme):
+#     return{
+#         'message': f'Добавлен пользователь: {user.username}',
+#     }
 
