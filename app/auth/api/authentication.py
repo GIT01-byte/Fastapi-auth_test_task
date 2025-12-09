@@ -12,16 +12,20 @@ from schemas.users import (
     RegisterRequest,
     UserInDB,
     )
-from services.auth_service import authenticate_user, logout_user, refresh_user_tokens, register_user_to_db
+from services.auth_service import (
+    authenticate_user, 
+    logout_user, 
+    refresh_user_tokens, 
+    register_user_to_db
+    )
 from deps.auth_deps import (
     get_tokens_by_cookie,
     get_current_access_token_payload,
     get_current_active_auth_user,
 )
 
-import logging
-# Настройка логгера
-logger = logging.getLogger(__name__)
+from utils.logging import logger
+
 
 router = APIRouter()
 
