@@ -3,12 +3,6 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
-class UserInsertDB(BaseModel):
-    username: str
-    email: Optional[EmailStr] = None
-    profile: Optional[dict[str, Any]] = None
-    hashed_password: bytes
-
 class UserInDB(BaseModel):
     id: int
     username: str
@@ -24,10 +18,10 @@ class LoginRequest(BaseModel):
     username: str = Field(...)
     password: str = Field(...)
 
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str | None = None
-    token_type: str = "bearer"
+# class TokenResponse(BaseModel):
+#     access_token: str
+#     refresh_token: str | None = None
+#     token_type: str = "bearer"
 
 class RefreshRequest(BaseModel):
     refresh_token: str

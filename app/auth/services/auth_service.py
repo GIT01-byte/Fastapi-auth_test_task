@@ -1,28 +1,23 @@
 from fastapi import Response
-from fastapi.requests import Request 
 
 from schemas.users import UserInDB
-
 from config import settings
-
 from services.jwt_tokens import (
     REFRESH_TOKEN_TYPE,
     ACCESS_TOKEN_TYPE,
     create_access_token,
     create_refresh_token,
     )
-
 from exceptions.exceptions import (
     CookieMissingTokenError,
     UserNotFoundError,
     InvalidPasswordError,
     UserInactiveError,
     )
-
-from utils.security import check_password, decode_jwt
+from utils.security import check_password, hash_password
 from db.user_repository import UsersRepo
+from deps.auth_deps import get_current_refresh_token_payload
 
-from deps.auth_deps import get_current_auth_user_for_refresh, get_current_refresh_token_payload
 
 async def authenticate_user(
     username: str,
@@ -85,6 +80,18 @@ async def authenticate_user(
     return response # Возвращаем готовый Response
 
 
+async def register_user_to_db(payload: dict, password: str) -> str:
+    # Хешируем пароль и добавляем в payload
+    hashed_password = hash_password(password)
+    full_payload = {**payload, 'hashed_password': hashed_password}
+    
+    # Добавляем пользователя в бд
+    created_user_in_db = await UsersRepo.insert_user(full_payload)
+    new_username = created_user_in_db.username
+    
+    return new_username
+
+
 def refresh_user_tokens(refresh_token: str) -> Response:
     if refresh_token:
         # Извлекаем из refresh токена user id и еще проверяем токен на свежесть при помощи декодирования
@@ -98,27 +105,16 @@ def refresh_user_tokens(refresh_token: str) -> Response:
             media_type="application/json",
         )
 
-        # Удаляем куки старых токенов
+        # Удаляем куки старого access
         response.delete_cookie(ACCESS_TOKEN_TYPE)
-        response.delete_cookie(REFRESH_TOKEN_TYPE)
 
-        # Генерируем новые токены
+        # Генерируем новый access
         new_access_token = create_access_token(user_id)
-        new_refresh_token = create_refresh_token(user_id)
 
-        # Устанавливаем куки с новыми токенами
+        # Устанавливаем куки с новым access
         response.set_cookie(
             key=ACCESS_TOKEN_TYPE,
             value=new_access_token,
-            httponly=True,          # Доступно только через HTTP
-            secure=True,            # Только по HTTPS (важно для продакшена)
-            samesite="lax",         # Защита от CSRF
-            max_age=60 * settings.jwt_auth.access_token_expire_minutes # Время жизни куки
-        )
-        # TODO add logging(exp handle)
-        response.set_cookie(
-            key=REFRESH_TOKEN_TYPE,
-            value=new_refresh_token,
             httponly=True,          # Доступно только через HTTP
             secure=True,            # Только по HTTPS (важно для продакшена)
             samesite="lax",         # Защита от CSRF

@@ -3,33 +3,33 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from exceptions.exceptions import (
     InvalidCredentialsError,
     PasswordRequiredError,
+    RegistrationFailedError,
+    UserAlreadyExistsError,
     UserAlreadyLoggedgError,
     )
 from schemas.users import (
     LoginRequest,
+    RegisterRequest,
     UserInDB,
     )
-from services.auth_service import authenticate_user, logout_user, refresh_user_tokens
+from services.auth_service import authenticate_user, logout_user, refresh_user_tokens, register_user_to_db
 from deps.auth_deps import (
     get_tokens_by_cookie,
-    http_bearer,
     get_current_access_token_payload,
     get_current_active_auth_user,
 )
 
+import logging
+# Настройка логгера
+logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    dependencies=[Depends(http_bearer)],
-    )
+router = APIRouter()
 
 
 @router.post('/login')
 async def login_user(
     request: LoginRequest,
 ):
-    # current_user = await get_current_active_auth_user()
-    # if current_user:
-    #     raise UserAlreadyLoggedgError()
     if not request.password:
         raise PasswordRequiredError()
     user = await authenticate_user(request.username, request.password)
@@ -38,23 +38,31 @@ async def login_user(
     return user
 
 
-# @router.post('/register')
-# async def register_user(
-#     request: RegisterRequest,
-# ) -> TokenResponse:
-#     # Подготавливаем payload без пароля (он хешируется внутри)
-#     payload = {
-#         'user': request.username,
-#         'email': request.email,
-#         'profile': request.profile,
-#     }
-#     user = await authenticate_user(request.username, request.password)
-#     if not user:
-#         raise InvalidCredentialsError()
-#     return TokenResponse(
-#         access_token=user["access_token"],
-#         refresh_token=user["refresh_token"]
-#     )
+@router.post('/register')
+async def register_user(request: RegisterRequest):
+    try:
+        # Подготавливаем payload без пароля (он хешируется внутри)
+        payload = {
+            'username': request.username,
+            'email': request.email,
+            'profile': request.profile,
+        }
+        new_user = await register_user_to_db(payload, request.password)
+        return {'message': f'Register user: {new_user!r} is successfuly!'}
+    
+    # Ловим уникальность и прочие ошибки # TODO fix this exc 
+    except ValueError as e:
+        err_msg = str(e)
+        if "UniqueViolationError" in err_msg:
+            raise UserAlreadyExistsError() 
+        logger.error(f'Registration error, exc_info="{err_msg}"')
+        raise RegistrationFailedError(detail=err_msg)
+    except Exception as e:
+        err_msg = str(e)
+        if "UniqueViolationError" in err_msg:
+            raise UserAlreadyExistsError()
+        logger.error(f'Registration error, exc_info="{err_msg}"')
+        raise RegistrationFailedError()
 
 
 @router.post('/refresh/')
@@ -62,12 +70,7 @@ async def auth_refresh_jwt(
     tokens: dict = Depends(get_tokens_by_cookie),
 ):
     refresh_token = tokens['refresh_token']
-    user = refresh_user_tokens(refresh_token)
-    if not user:
-        raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail='Result of function: refresh_user_tokens is not realize'
-        )
+    user = refresh_user_tokens(refresh_token) # TODO fix dep sub error
     return user
 
 
@@ -86,7 +89,6 @@ async def auth_user_check_self_info(
 
 @router.post("/logout/")
 async def logout():
-    # TODO add exp handle (retry logging out)
     result = logout_user()
     return result
 
@@ -96,4 +98,3 @@ async def get_cookie(
     result: dict = Depends(get_tokens_by_cookie)
 ):
     return result
-

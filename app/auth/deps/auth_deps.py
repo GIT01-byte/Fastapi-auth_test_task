@@ -1,7 +1,9 @@
+from typing import Any, Callable, Coroutine
+
 from jwt import InvalidTokenError
-from fastapi import Depends, Form, HTTPException, Request, status
-from fastapi.security import HTTPBearer, OAuth2PasswordBearer
-from models.users import UsersOrm
+
+from fastapi import Depends, Form, HTTPException, Request, Response, status
+
 from exceptions.exceptions import (
     CookieMissingTokenError,
     InvalidCredentialsError,
@@ -13,18 +15,12 @@ from schemas.users import UserInDB
 from utils.security import check_password, decode_jwt
 from db.user_repository import UsersRepo
 from services.jwt_tokens import TOKEN_TYPE_FIELD, ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE
-from typing import Any, Callable, Coroutine
+
 import logging
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
-http_bearer = HTTPBearer(auto_error=False)
 
 async def validate_auth_user(
     username: str = Form(),
@@ -76,6 +72,13 @@ def get_tokens_by_cookie(request: Request) -> dict[str, str]:
     
     logger.warning("Отсутствуют необходимые cookie с токенами.")
     raise CookieMissingTokenError()
+
+def clear_cookie_with_tokens(response: Response) -> Response:
+    # Удаляем куки токенов
+    response.delete_cookie(ACCESS_TOKEN_TYPE)
+    response.delete_cookie(REFRESH_TOKEN_TYPE)
+
+    return response
 
 def get_current_access_token_payload(
     tokens: dict[str, str] = Depends(get_tokens_by_cookie),

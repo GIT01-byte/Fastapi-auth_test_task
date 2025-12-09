@@ -1,8 +1,6 @@
 from sqlalchemy import select, update
 
-from schemas.users import UserInsertDB
 from models.users import UsersOrm
-
 from db.database import Base, async_session_factory, async_engine
 
 
@@ -14,12 +12,11 @@ class UsersRepo():
             await conn.run_sync(Base.metadata.create_all)
 
     @staticmethod
-    async def insert_user(payload: UserInsertDB) -> UsersOrm:
+    async def insert_user(payload: dict) -> UsersOrm:
         async with async_session_factory() as session:
-            user_dict = payload.model_dump()
-            
-            created_user = UsersOrm(**user_dict)
+            created_user = UsersOrm(**payload)
             session.add(created_user)
+
             await session.flush()
             await session.commit()
             await session.refresh(created_user)
@@ -43,18 +40,6 @@ class UsersRepo():
             query = (
                 select(UsersOrm)
                 .where(UsersOrm.username == username)
-            )
-            result = await session.execute(query)
-            user = result.scalars().first()
-            return user
-
-    @staticmethod
-    async def logout_user(user_id: int) -> UsersOrm | None:
-        async with async_session_factory() as session:
-            query = (
-                update(UsersOrm)
-                .where(UsersOrm.id == user_id)
-                .values(is_active=~UsersOrm.is_active)
             )
             result = await session.execute(query)
             user = result.scalars().first()
