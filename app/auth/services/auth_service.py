@@ -18,6 +18,8 @@ from utils.security import check_password, hash_password
 from db.user_repository import UsersRepo
 from deps.auth_deps import get_current_refresh_token_payload
 
+from utils.logging import logger
+
 
 async def authenticate_user(
     username: str,

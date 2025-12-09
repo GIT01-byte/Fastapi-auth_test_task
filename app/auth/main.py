@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-import loguru
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +9,7 @@ from db.user_repository import UsersRepo
 from api.api import api_routers
 
 from utils.logging import logger
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +31,7 @@ app.add_middleware(
 app.include_router(api_routers)
 
 setup_admin(app, async_engine)
+
 
 if __name__ == "__main__":
     import uvicorn

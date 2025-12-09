@@ -16,10 +16,7 @@ from utils.security import check_password, decode_jwt
 from db.user_repository import UsersRepo
 from services.jwt_tokens import TOKEN_TYPE_FIELD, ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE
 
-import logging
-
-# Настройка логгера
-logger = logging.getLogger(__name__)
+from utils.logging import logger
 
 
 async def validate_auth_user(
