@@ -15,13 +15,13 @@ class UserInDB(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(...)
+    login: str = Field(...)
     password: str = Field(...)
 
-# class TokenResponse(BaseModel):
-#     access_token: str
-#     refresh_token: str | None = None
-#     token_type: str = "bearer"
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str | None = None
+    token_type: str = "bearer"
 
 class RefreshRequest(BaseModel):
     refresh_token: str

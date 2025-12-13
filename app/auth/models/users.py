@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from db.database import Base
 
-class UsersOrm(Base):
+class Users(Base):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -15,3 +15,12 @@ class UsersOrm(Base):
     profile: Mapped[Any | None] = mapped_column(JSON)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class UsersTokens(Base):
+    __tablename__ = 'users_tokens'
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+
+    hashed_refresh_token: Mapped[bytes] = mapped_column(unique=True, nullable=False)
+    refresh_token: Mapped[bytes] = mapped_column(unique=True, nullable=False)

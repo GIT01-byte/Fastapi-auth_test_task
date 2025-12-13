@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from utils.security import create_access_token, create_refresh_token
 from exceptions.exceptions import (
     InvalidCredentialsError,
     PasswordRequiredError,
@@ -9,39 +10,45 @@ from exceptions.exceptions import (
 from schemas.users import (
     LoginRequest,
     RegisterRequest,
+    TokenResponse,
     UserInDB,
     )
 from services.auth_service import (
-    authenticate_user, 
     logout_user, 
-    refresh_user_token, 
     register_user_to_db
     )
 from deps.auth_deps import (
-    get_tokens_by_cookie,
-    get_current_access_token_payload,
+    get_current_token_payload,
+    http_bearer,
     get_current_active_auth_user,
+    get_current_auth_user_for_refresh,
+    validate_auth_user,
 )
 
 from utils.logging import logger
 
 
-router = APIRouter()
+auth = APIRouter(
+    dependencies=[Depends(http_bearer)],
+    )
+auth_usage = APIRouter()
+dev_usage = APIRouter()
 
 
-@router.post('/login')
-async def login_user(
-    request: LoginRequest,
+@auth.post('/login/')
+def auth_user_issue_jwt(
+    user: UserInDB = Depends(validate_auth_user),
 ):
-    if not request.password:
-        raise PasswordRequiredError()
-    user = await authenticate_user(request.username, request.password)
-    if not user:
-        raise InvalidCredentialsError()
-    return user
+    user_id = str(user.id)
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
 
 
-@router.post('/register')
+@auth.post('/register')
 async def register_user(request: RegisterRequest):
     try:
         # Подготавливаем payload без пароля (он хешируется внутри)
@@ -53,33 +60,45 @@ async def register_user(request: RegisterRequest):
         new_user = await register_user_to_db(payload, request.password)
         return {'message': f'Register user: {new_user!r} is successfuly!'}
     
-    # Ловим уникальность и прочие ошибки # TODO fix this exc 
+    # Ловим уникальность и прочие ошибки 
     except ValueError as e:
         err_msg = str(e)
-        if "UniqueViolationError" in err_msg:
+        if "already exists" in err_msg:
             raise UserAlreadyExistsError() 
         logger.error(f'Registration error, exc_info="{err_msg}"')
         raise RegistrationFailedError(detail=err_msg)
     except Exception as e:
         err_msg = str(e)
-        if "UniqueViolationError" in err_msg:
+        if "already exists" in err_msg:
             raise UserAlreadyExistsError()
         logger.error(f'Registration error, exc_info="{err_msg}"')
         raise RegistrationFailedError()
 
 
-@router.post('/refresh/')
-async def auth_refresh_jwt(
-    tokens: dict = Depends(get_tokens_by_cookie),
+@auth.post(
+    '/refresh/',
+    response_model=TokenResponse,
+    response_model_exclude_none=True,
+    )
+def auth_refresh_jwt(
+    user: UserInDB = Depends(get_current_auth_user_for_refresh)
 ):
-    refresh_token = tokens['refresh_token']
-    user = refresh_user_token(refresh_token) # TODO fix dep sub error
-    return user
+    user_id = str(user.id)
+    access_token = create_access_token(user_id)
+    return TokenResponse(
+        access_token=access_token,
+    )
 
 
-@router.get('/me/')
+@auth.post("/logout/")
+async def logout():
+    result = logout_user()
+    return result
+
+
+@auth_usage.get('/me/')
 async def auth_user_check_self_info(
-    payload: dict = Depends(get_current_access_token_payload),
+    payload: dict = Depends(get_current_token_payload),
     user: UserInDB = Depends(get_current_active_auth_user),
 ):
     iat = payload.get('iat')
@@ -88,16 +107,3 @@ async def auth_user_check_self_info(
         'email': user.email,
         'logged_in_at': iat,
     }
-
-
-@router.post("/logout/")
-async def logout():
-    result = logout_user()
-    return result
-
-
-@router.get("/get-current-cookie/")
-async def get_cookie(
-    result: dict = Depends(get_tokens_by_cookie)
-):
-    return result

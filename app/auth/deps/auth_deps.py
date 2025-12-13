@@ -1,8 +1,9 @@
-from typing import Any, Callable, Coroutine
+from typing import Annotated, Any, Callable, Coroutine
 
-from jwt import InvalidTokenError
+from fastapi.security import HTTPBearer, OAuth2PasswordBearer
+from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
 
-from fastapi import Depends, Form, HTTPException, Request, Response, status
+from fastapi import Depends, Form, HTTPException, Response, status, Request
 
 from exceptions.exceptions import (
     CookieMissingTokenError,
@@ -11,56 +12,27 @@ from exceptions.exceptions import (
     InvalidTokenPayload,
     SetCookieFailedError,
     UserInactiveError,
+    ValidateAuthUserFailedError,
 )
-from schemas.users import UserInDB
-from utils.security import check_password, decode_jwt
+from schemas.users import RefreshRequest, UserInDB
+from utils.security import (
+    TOKEN_TYPE_FIELD,
+    check_password, 
+    REFRESH_TOKEN_TYPE,
+    ACCESS_TOKEN_TYPE,
+    decode_jwt,
+    )
 from db.user_repository import UsersRepo
-from services.jwt_tokens import TOKEN_TYPE_FIELD, ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE
 
 from utils.logging import logger
 
 
-def get_tokens_by_cookie(request: Request) -> dict[str, str]:
-    access_token = request.cookies.get("access_token")
-    refresh_token = request.cookies.get("refresh_token")
-    
-    if access_token and refresh_token:
-        logger.debug("Токены успешно извлечены из cookies.")
-        return {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-        }
-    
-    logger.warning("Отсутствуют необходимые cookie с токенами.")
-    raise CookieMissingTokenError()
+http_bearer = HTTPBearer(auto_error=False)
 
-def clear_cookie_with_tokens(response: Response) -> Response:
-    # Удаляем куки токенов
-    response.delete_cookie(ACCESS_TOKEN_TYPE)
-    response.delete_cookie(REFRESH_TOKEN_TYPE)
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl='/users/login/'
+    )
 
-    return response
-
-def set_tokens_cookie(
-    key: str,
-    value: str,
-    max_age: int,
-    response: Response,
-):
-    # Устанавливаем куки, включая настройки безопасности
-    try:
-        response.set_cookie(
-            key=key,
-            value=value,
-            httponly=True,          # Доступно только через HTTP
-            secure=True,            # Только по HTTPS (важно для безопастности)
-            samesite="lax",         # Защита от CSRF
-            max_age=max_age * 60 if isinstance(max_age, int) else None, 
-        )
-        logger.info(f'Установка куки успешно произошла. Ключ: {key!r}, значение: {value!r}, время жизни: {max_age!r} минут')
-    except:
-        logger.error(f'Установка куки произошла с ошибкой. Ключ: {key!r}, значение: {value!r}, время жизни: {max_age!r} минут')
-        raise SetCookieFailedError()
 
 async def validate_auth_user(
     username: str = Form(),
@@ -71,7 +43,7 @@ async def validate_auth_user(
     """
     try:
         logger.debug(f"Получение пользователя по имени '{username}'...")
-        user_data_from_db = await UsersRepo.select_user_by_username(username)
+        user_data_from_db = await UsersRepo.select_user_by_login(username)
         
         if not user_data_from_db:
             logger.warning(f"Пользователь '{username}' не найден!")
@@ -95,39 +67,22 @@ async def validate_auth_user(
             hashed_password=user_data_from_db.hashed_password,
             is_active=user_data_from_db.is_active,
         )
-    except Exception as e:
-        logger.error(f"Ошибка при проверке учетных данных пользователя: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="internal server error")
+    except Exception as ex:
+        logger.error(f"Ошибка при проверке учетных данных пользователя: {ex}")
+        raise ValidateAuthUserFailedError()
 
-def get_current_access_token_payload(
-    tokens: dict[str, str] = Depends(get_tokens_by_cookie),
-) -> dict[str, Any]:
+def get_current_token_payload(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
     """
-    Декодирует Access JWT-токен и возвращает его полезную нагрузку.
+    Декодирует JWT-токен и возвращает его полезную нагрузку.
     """
     try:
-        logger.debug("Начинаю декодирование токена...")
-        payload = decode_jwt(token=tokens['access_token'])
+        logger.debug(f'Начинаю декодировать токен: {token}')
+        payload: dict[str, Any] = decode_jwt(token=token)
         logger.debug(f"Декодированный токен: {payload}")
         return payload
-    except InvalidTokenError as e:
-        logger.error(f"Недействительный токен: {e}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f'invalid token error: {e}')
-
-def get_current_refresh_token_payload(
-    tokens: dict[str, str] = Depends(get_tokens_by_cookie),
-) -> dict[str, Any]:
-    """
-    Декодирует Refresh JWT-токен и возвращает его полезную нагрузку.
-    """
-    try:
-        logger.debug("Начинаю декодирование токена обновления...")
-        payload = decode_jwt(token=tokens['refresh_token'])
-        logger.debug(f"Декодированный токен обновления: {payload}")
-        return payload
-    except InvalidTokenError as e:
-        logger.error(f"Недействительный токен обновления: {e}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f'invalid token error: {e}')
+    except (DecodeError, ExpiredSignatureError) as ex:
+        logger.error(f"Ошибка декодирования окена: {ex}")
+        raise MalformedTokenError(detail='invalid token')
 
 def validate_token_type(
     payload: dict[str, Any],
@@ -176,7 +131,7 @@ def get_auth_user_from_token_of_type(token_type: str) -> Callable[[dict[str, Any
     аутентифицированного пользователя определенного типа токена.
     """
     async def get_auth_user_from_token(
-        payload: dict[str, Any] = Depends(get_current_access_token_payload)
+        payload: dict[str, Any] = Depends(get_current_token_payload)
     ) -> UserInDB:
         logger.debug(f"Валидация токена типа '{token_type}'...")
         validate_token_type(payload, token_type)
