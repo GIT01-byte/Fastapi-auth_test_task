@@ -1,20 +1,18 @@
-from typing import Annotated, Any, Callable, Coroutine
+from typing import Any, Callable, Coroutine
 
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer
-from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
+from jwt import DecodeError, ExpiredSignatureError
 
-from fastapi import Depends, Form, HTTPException, Response, status, Request
+from fastapi import Depends, Form
 
 from exceptions.exceptions import (
-    CookieMissingTokenError,
     InvalidCredentialsError,
     MalformedTokenError,
     InvalidTokenPayload,
-    SetCookieFailedError,
     UserInactiveError,
     ValidateAuthUserFailedError,
 )
-from schemas.users import RefreshRequest, UserInDB
+from schemas.users import UserInDB
 from utils.security import (
     TOKEN_TYPE_FIELD,
     check_password, 

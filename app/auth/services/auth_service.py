@@ -1,23 +1,13 @@
 from fastapi import Response
 
-from schemas.users import UserInDB
-from config import settings
 from exceptions.exceptions import (
-    CookieMissingTokenError,
     LogoutUserFailedError,
-    RefreshUserTokenFailesError,
     UserAlreadyExistsError,
-    UserNotFoundError,
-    InvalidPasswordError,
-    UserInactiveError,
     )
 from utils.security import (
-    check_password, 
     hash_password,
     REFRESH_TOKEN_TYPE,
     ACCESS_TOKEN_TYPE,
-    create_access_token,
-    create_refresh_token,
     )
 from db.user_repository import UsersRepo
 

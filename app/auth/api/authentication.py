@@ -1,14 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from utils.security import create_access_token, create_refresh_token
 from exceptions.exceptions import (
-    InvalidCredentialsError,
-    PasswordRequiredError,
     RegistrationFailedError,
     UserAlreadyExistsError,
     )
 from schemas.users import (
-    LoginRequest,
     RegisterRequest,
     TokenResponse,
     UserInDB,
