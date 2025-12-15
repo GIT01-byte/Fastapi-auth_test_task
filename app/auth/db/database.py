@@ -9,7 +9,7 @@ from config import settings
 
 
 async_engine = create_async_engine(
-    url=settings.db_settings.DATABASE_URL_asyncpg,
+    url=settings.db.DB_URL_asyncpg,
     echo=False,
 )
 

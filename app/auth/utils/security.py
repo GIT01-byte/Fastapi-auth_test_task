@@ -16,7 +16,7 @@ REFRESH_TOKEN_TYPE = 'refresh_token'
 def create_jwt(
     token_type: str,
     token_data: dict,
-    expire_minutes: int = settings.jwt_auth.access_token_expire_minutes,
+    expire_minutes: int = settings.jwt.access_token_expire_minutes,
     expire_timedelta: timedelta | None = None,
 ) -> str:
     jwt_payload = {
@@ -37,7 +37,7 @@ def create_access_token(user_id: str) -> str:
     return create_jwt(
         token_type=ACCESS_TOKEN_TYPE,
         token_data=jwt_payload,
-        expire_minutes=settings.jwt_auth.access_token_expire_minutes,
+        expire_minutes=settings.jwt.access_token_expire_minutes,
     )
 
 
@@ -49,7 +49,7 @@ def create_refresh_token(user_id: str) -> str:
         token_type=REFRESH_TOKEN_TYPE,
         token_data=jwt_payload,
         expire_timedelta=timedelta(
-            days=settings.jwt_auth.refresh_token_expire_days),
+            days=settings.jwt.refresh_token_expire_days),
     )
 
 
@@ -73,9 +73,9 @@ def check_password(
 
 def encode_jwt(
     payload: dict,
-    private_key: str = settings.jwt_auth.private_key_path.read_text(),
-    algorithm: str = settings.jwt_auth.algorithm,
-    expire_minutes: int = settings.jwt_auth.access_token_expire_minutes,
+    private_key: str = settings.jwt.private_key_path.read_text(),
+    algorithm: str = settings.jwt.algorithm,
+    expire_minutes: int = settings.jwt.access_token_expire_minutes,
     expire_timedelta: timedelta | None = None,
 ) -> str:
     to_encode = payload.copy()
@@ -98,8 +98,8 @@ def encode_jwt(
 
 def decode_jwt(
     token: str | bytes,
-    public_key: str = settings.jwt_auth.public_key_path.read_text(),
-    algorithm: str = settings.jwt_auth.algorithm,
+    public_key: str = settings.jwt.public_key_path.read_text(),
+    algorithm: str = settings.jwt.algorithm,
 ) -> dict[str, Any]:
     decoded = jwt.decode(
         token,

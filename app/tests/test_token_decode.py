@@ -1,10 +1,9 @@
-from auth.config import settings
 import os
 import sys
 import jwt
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from auth.config import settings
 
 token_string = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.' \
     'eyJ0eXBlIjoicmVmcmVzaF90b2tlbiIsInN1YiI6IjEiLCJleHAiOjU0OTgxMjQyOTUsImlhdCI6MTc2NTY0NDI5NX0.' \
@@ -12,7 +11,7 @@ token_string = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.' \
 
 token_bytes = token_string.encode('utf-8')
 
-decoded_payload = jwt.decode(token_bytes, settings.jwt_auth.public_key_path.read_text(
-), algorithms=settings.jwt_auth.algorithm)
+decoded_payload = jwt.decode(token_bytes, settings.jwt.public_key_path.read_text(
+), algorithms=settings.jwt.algorithm)
 
 print(decoded_payload)

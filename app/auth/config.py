@@ -17,23 +17,43 @@ class JwtAuth(BaseModel):
     refresh_token_expire_days: int = 60 * 24 * 30
 
 
-class DatabaseSettings(BaseSettings):
-    DB_HOST: str
-    DB_PORT: int
-    DB_USER: str
-    DB_PASS: str
-    DB_NAME: str
+class DatabaseSettings(BaseModel):
+    host: str
+    port: int
+    user: str
+    pwd: str
+    name: str
 
     @property
-    def DATABASE_URL_asyncpg(self):
-        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    def DB_URL_asyncpg(self):
+        return f"postgresql+asyncpg://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.name}"
 
-    model_config = SettingsConfigDict(env_file='.env')
+
+class RedisSettings(BaseModel):
+    host: str
+    port: int
+
+    @property
+    def REDIS_URL(self):
+        return f"redis://{self.host}:{self.port}/1"
 
 
 class Settings(BaseSettings):
-    jwt_auth: JwtAuth = JwtAuth()
-    db_settings: DatabaseSettings = DatabaseSettings()  # type: ignore
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        case_sensitive=False,
+        env_nested_delimiter='__',
+        env_prefix='APP__CONFIG__',
+    )
+
+    jwt: JwtAuth = JwtAuth()
+    db: DatabaseSettings
+    redis: RedisSettings
 
 
-settings = Settings()  # type: ignore
+settings = Settings()
+
+print(f"DB Host: {settings.db.host}")
+print(f"Redis URL: {settings.redis.REDIS_URL}")
+print(f"JWT Algorithm: {settings.jwt.algorithm}")
+print(f"Asyncpg DB URL: {settings.db.DB_URL_asyncpg}")
