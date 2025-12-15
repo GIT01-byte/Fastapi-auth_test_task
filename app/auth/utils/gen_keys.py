@@ -36,4 +36,5 @@ pem_public = public_key.public_bytes(
 with open(os.path.join(KEY_DIR, "public_key.pem"), "wb") as f:
     f.write(pem_public)
 
-print(f"Ключи успешно записаны в файлы {KEY_DIR}/private_key.pem и {KEY_DIR}/public_key.pem")
+print(
+    f"Ключи успешно записаны в файлы {KEY_DIR}/private_key.pem и {KEY_DIR}/public_key.pem")

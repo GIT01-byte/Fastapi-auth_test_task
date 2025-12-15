@@ -5,7 +5,7 @@ from sqladmin import Admin, ModelView
 from models.users import Users
 
 
-class UserAdminView(ModelView, model = Users):
+class UserAdminView(ModelView, model=Users):
     can_create = True
     column_list = ('id', 'username' 'email', 'avatar_links')
     form_columns = ('id', 'username' 'email', 'avatar_links')

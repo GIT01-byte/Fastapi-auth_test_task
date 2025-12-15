@@ -27,7 +27,7 @@ def create_jwt(
         payload=jwt_payload,
         expire_minutes=expire_minutes,
         expire_timedelta=expire_timedelta,
-        )
+    )
 
 
 def create_access_token(user_id: str) -> str:
@@ -40,6 +40,7 @@ def create_access_token(user_id: str) -> str:
         expire_minutes=settings.jwt_auth.access_token_expire_minutes,
     )
 
+
 def create_refresh_token(user_id: str) -> str:
     jwt_payload = {
         'sub': user_id,
@@ -47,7 +48,8 @@ def create_refresh_token(user_id: str) -> str:
     return create_jwt(
         token_type=REFRESH_TOKEN_TYPE,
         token_data=jwt_payload,
-        expire_timedelta=timedelta(days=settings.jwt_auth.refresh_token_expire_days),
+        expire_timedelta=timedelta(
+            days=settings.jwt_auth.refresh_token_expire_days),
     )
 
 
@@ -57,6 +59,7 @@ def hash_password(
     salt = bcrypt.gensalt()
     pwd_bytes: bytes = password.encode()
     return bcrypt.hashpw(pwd_bytes, salt)
+
 
 def check_password(
     password: str,
@@ -91,6 +94,7 @@ def encode_jwt(
         algorithm=algorithm
     )
     return encoded
+
 
 def decode_jwt(
     token: str | bytes,

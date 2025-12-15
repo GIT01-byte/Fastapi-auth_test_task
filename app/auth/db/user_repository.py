@@ -20,7 +20,7 @@ class UsersRepo():
         async with async_session_factory() as session:
             new_user = Users(**payload)
             session.add(new_user)
-        
+
             try:
                 await session.flush()
                 await session.commit()
@@ -32,7 +32,6 @@ class UsersRepo():
                 logger.error(f"Ошибка вставки пользователя: {ex}")
                 await session.rollback()
                 return None
-
 
     @staticmethod
     async def select_user_by_user_id(user_id: int) -> Users | None:

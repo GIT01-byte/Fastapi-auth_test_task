@@ -4,16 +4,16 @@ from utils.security import create_access_token, create_refresh_token
 from exceptions.exceptions import (
     RegistrationFailedError,
     UserAlreadyExistsError,
-    )
+)
 from schemas.users import (
     RegisterRequest,
     TokenResponse,
     UserInDB,
-    )
+)
 from services.auth_service import (
-    logout_user, 
+    logout_user,
     register_user_to_db
-    )
+)
 from deps.auth_deps import (
     get_current_token_payload,
     http_bearer,
@@ -27,7 +27,7 @@ from utils.logging import logger
 
 auth = APIRouter(
     dependencies=[Depends(http_bearer)],
-    )
+)
 auth_usage = APIRouter()
 dev_usage = APIRouter()
 
@@ -56,12 +56,12 @@ async def register_user(request: RegisterRequest):
         }
         new_user = await register_user_to_db(payload, request.password)
         return {'message': f'Register user: {new_user!r} is successfuly!'}
-    
-    # Ловим уникальность и прочие ошибки 
+
+    # Ловим уникальность и прочие ошибки
     except ValueError as e:
         err_msg = str(e)
         if "already exists" in err_msg:
-            raise UserAlreadyExistsError() 
+            raise UserAlreadyExistsError()
         logger.error(f'Registration error, exc_info="{err_msg}"')
         raise RegistrationFailedError(detail=err_msg)
     except Exception as e:
@@ -76,7 +76,7 @@ async def register_user(request: RegisterRequest):
     '/refresh/',
     response_model=TokenResponse,
     response_model_exclude_none=True,
-    )
+)
 def auth_refresh_jwt(
     user: UserInDB = Depends(get_current_auth_user_for_refresh)
 ):
