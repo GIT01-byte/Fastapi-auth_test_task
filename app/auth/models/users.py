@@ -1,9 +1,25 @@
 from datetime import datetime
 from typing import Any
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Boolean, JSON, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.database import Base
+from sqlalchemy import (
+    DateTime, 
+    ForeignKey, 
+    Integer, 
+    String, 
+    Boolean, 
+    JSON, 
+    func,
+)
+from sqlalchemy.orm import (
+    Mapped, 
+    mapped_column, 
+    relationship,
+)
+
+from .base import (
+    Base, 
+    str_64,
+)
 
 
 class User(Base):
@@ -12,7 +28,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True)
 
-    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    username: Mapped[str_64] = mapped_column(String, unique=True, nullable=False)
     hashed_password: Mapped[bytes] = mapped_column(nullable=False)
     email: Mapped[str | None] = mapped_column(String, unique=True)
     profile: Mapped[Any | None] = mapped_column(JSON)

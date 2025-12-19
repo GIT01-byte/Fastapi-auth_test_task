@@ -18,11 +18,17 @@ class JwtAuth(BaseModel):
 
 
 class DatabaseSettings(BaseModel):
+    # DB URL
     host: str
     port: int
     user: str
     pwd: str
     name: str
+    # Other DB settings
+    echo: bool = False
+    echo_pool: bool = False
+    pool_size: int = 50
+    max_overflow: int = 10
 
     @property
     def DB_URL_asyncpg(self):

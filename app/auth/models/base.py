@@ -1,19 +1,9 @@
-import asyncio
+from sqlalchemy import String
 from typing import Annotated
 
-from sqlalchemy import String, create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import String
+from sqlalchemy.orm import DeclarativeBase
 
-from config import settings
-
-
-async_engine = create_async_engine(
-    url=settings.db.DB_URL_asyncpg,
-    echo=False,
-)
-
-async_session_factory = async_sessionmaker(async_engine)
 
 str_64 = Annotated[str, 64]
 str_256 = Annotated[str, 256]
@@ -36,3 +26,4 @@ class Base(DeclarativeBase):
                 cols.append(f"{col}={getattr(self, col)}")
 
         return f"<{self.__class__.__name__} {', '.join(cols)}>"
+

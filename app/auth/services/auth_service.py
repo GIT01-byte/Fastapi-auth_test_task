@@ -3,7 +3,7 @@ from fastapi import Depends, Response
 from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError as JWTInvalidTokenError
 
-from db.refresh_tokens_repository import RefresTokensRepo
+from db.user_repository import RefresTokensRepo
 from config import settings
 from schemas.users import UserInDB
 from app_redis.client import get_redis_client
