@@ -5,22 +5,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from models.user_admin import setup_admin
 from db.database import async_engine
-from db.user_repository import UsersRepo
 from api.api import api_routers
 
 from utils.logging import logger
 
 import tracemalloc
 
-# Включаем отслеживание памяти
+# Включаем отслеживание памяти, для дебага ошибок с ассинхронными функциями
 tracemalloc.start()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info('Запуск приложения...')
-    await UsersRepo.create_tables()
-    logger.debug('База перезапущена')
     yield
     logger.info('Выключение...')
 
