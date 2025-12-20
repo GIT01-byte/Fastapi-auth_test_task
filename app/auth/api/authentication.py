@@ -1,12 +1,10 @@
-from fastapi import APIRouter, Depends, Form, Response
+from typing import Annotated
+from fastapi import APIRouter, Depends, Response
+from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
 
 from db.users_repository import UsersRepo
-from config import settings
-from app_redis.client import get_redis_client
-from utils.security import create_access_token, create_refresh_token
 from exceptions.exceptions import (
     InvalidCredentialsError,
-    LogoutUserFailedError,
     PasswordRequiredError,
     RegistrationFailedError,
     UserAlreadyExistsError,
@@ -23,11 +21,10 @@ from services.auth_service import (
     register_user_to_db
 )
 from deps.auth_deps import (
-    SessionDep,
-    get_current_token_payload,
-    get_current_user,
-    http_bearer,
     oauth2_scheme,
+    get_current_token_payload,
+    get_current_active_user,
+    http_bearer,
 )
 
 from utils.logging import logger
@@ -46,12 +43,13 @@ dev_usage = APIRouter()
 
 
 # TODO refresh_hash insert db
-@auth.post('/login/')
-async def login(response: Response, request: LoginRequest):
-    logger.info(f'Принял логин: {request.login!r} и пароль: {request.password!r} ')
-    if not request.password:
+@auth.post('/login/', response_model=TokenResponse)
+async def login(response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    logger.info(
+        f'Принял логин: {form_data.username!r} и пароль: {form_data.password!r} ')
+    if not form_data.password:
         raise PasswordRequiredError()
-    user = await authenticate_user(response, request.login, request.password)
+    user = await authenticate_user(response, form_data.username, form_data.password)
     if not user:
         raise InvalidCredentialsError()
     return TokenResponse(
@@ -113,7 +111,7 @@ async def register_user(request: RegisterRequest):
 #             content={'message': 'logout succesfully'},
 #             status_code=200,
 #             media_type="application/json",
-#         )  
+#         )
 #         access_jti = user["jti"]  # ← можно извлечь из JWT
 #         user_id = user["user_id"]
 
@@ -133,14 +131,11 @@ async def register_user(request: RegisterRequest):
 @auth_usage.get('/me/')
 async def auth_user_check_self_info(
     payload: dict = Depends(get_current_token_payload),
-    current_user: dict = Depends(get_current_user),
+    current_user: UserInDB = Depends(get_current_active_user),
 ):
-    user = await UsersRepo.select_user_by_user_id(current_user['user_id'])
-    if user:
-        iat = payload.get('iat')
-        return {
-            'username': user.username,
-            'email': user.email,
-            'logged_in_at': iat,
-        }
-    raise UserNotFoundError()
+    iat = payload.get('iat')
+    return {
+        'username': current_user.username,
+        'email': current_user.email,
+        'logged_in_at': iat,
+    }

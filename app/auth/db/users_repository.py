@@ -2,10 +2,8 @@ from typing import Optional
 from datetime import datetime
 
 from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 
-from app.auth.deps.auth_deps import SessionDep
 from exceptions.exceptions import UserAlreadyExistsError
 
 from db.db_manager import db_manager
@@ -25,7 +23,7 @@ class UsersRepo():
     @staticmethod
     async def create_user(payload: dict) -> Optional[User]:
         async with db_manager.session_factory() as session:
-            existing_user = await session.execute(
+            existing_user = await session.scalar(
                 select(User)
                 .filter(
                     or_(User.username == payload['username'], User.email == payload['email'])
@@ -49,7 +47,7 @@ class UsersRepo():
             return await session.scalar(select(User).where(User.id == user_id))
 
     @staticmethod
-    async def select_user_by_useraname(username: str) -> User | None:
+    async def select_user_by_username(username: str) -> User | None:
         async with db_manager.session_factory() as session:
             return await session.scalar(select(User).where(User.username == username))
 

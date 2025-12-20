@@ -3,7 +3,7 @@ from fastapi import Depends, Response
 from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError as JWTInvalidTokenError
 
-from app.auth.db.users_repository import RefreshTokensRepo
+from db.users_repository import UsersRepo, RefreshTokensRepo
 from config import settings
 from schemas.users import UserInDB
 from app_redis.client import get_redis_client
@@ -23,7 +23,6 @@ from utils.security import (
     create_refresh_token as gen_refresh_token,
     hash_password,
 )
-from app.auth.db.users_repository import UsersRepo
 from deps.auth_deps import (
     SessionDep, 
     get_current_token_payload, 
@@ -39,7 +38,7 @@ async def authenticate_user(
     login: str,
     password: str,
 ) -> dict:
-    user_data_from_db = await UsersRepo.select_user_by_useraname(login)
+    user_data_from_db = await UsersRepo.select_user_by_username(login)
 
     # Проверяем полученного user'а
     if not user_data_from_db:

@@ -5,6 +5,8 @@ from fastapi import Depends, Request, Response
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError as JWTInvalidTokenError
 
+from db.users_repository import UsersRepo
+from schemas.users import TokenResponse, UserInDB
 from db.db_manager import db_manager
 from sqlalchemy.ext.asyncio import AsyncSession
 from app_redis.client import get_redis_client
@@ -13,6 +15,8 @@ from exceptions.exceptions import (
     InvalidTokenError,
     SetCookieFailedError,
     TokenRevokedError,
+    UserInactiveError,
+    UserNotFoundError,
 )
 from utils.security import (
     REFRESH_TOKEN_TYPE,
@@ -91,33 +95,51 @@ def set_tokens_cookie(
             f'Установка куки произошла с ошибкой. Ключ: {key!r}, значение: {value!r}, время жизни: {max_age!r} минут')
         raise SetCookieFailedError()
 
-# TODO update auth deps
+# TODO fix token dep
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    redis=Depends(get_redis_client),
-) -> dict:
+    token: Annotated[str, Depends(oauth2_scheme)],
+    redis = Depends(get_redis_client),
+) -> UserInDB:
     """
-    Извлекает и валидирует JWT access-токен.
-    Возвращает словарь: {"user_id": str, "jti": str}
+
     """
     try:
         payload = get_current_token_payload(token)
 
-        user_id: str | None = payload.get("sub")
+        user_id: int | None = int(payload.get("sub")) # type: ignore
         jti: str | None = payload.get("jti")
-        token_type: str | None = payload.get("type")
 
         if not user_id or not jti:
             raise InvalidTokenError("Missing required claims: sub or jti")
-
-        if token_type != "access":
-            raise InvalidTokenError("Invalid token type: expected 'access'")
 
         # Проверка чёрного списка Redis
         if await redis.exists(f"blacklist:access:{jti}"):
             raise TokenRevokedError()
 
-        return {"user_id": user_id, "jti": jti}
+        user_data_from_db = await UsersRepo.select_user_by_user_id(user_id)
 
+        # Проверяем полученного user'а
+        if not user_data_from_db:
+            raise UserNotFoundError()
+
+        # Преобразуем данные из репозитория в Pydantic модель
+        user = UserInDB(
+            id=user_data_from_db.id,
+            username=user_data_from_db.username,
+            email=user_data_from_db.email,
+            hashed_password=user_data_from_db.hashed_password,
+            is_active=user_data_from_db.is_active,
+        )
+
+        return user
+    
     except JWTInvalidTokenError:
         raise InvalidTokenError()
+
+
+async def get_current_active_user(
+    current_user: Annotated[UserInDB, Depends(get_current_user)],
+):
+    if not current_user.is_active:
+        raise UserInactiveError()
+    return current_user
