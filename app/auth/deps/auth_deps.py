@@ -21,7 +21,7 @@ from exceptions.exceptions import (
 from utils.security import (
     REFRESH_TOKEN_TYPE,
     ACCESS_TOKEN_TYPE,
-    decode_jwt,
+    decode_access_token,
 )
 
 from utils.logging import logger
@@ -34,20 +34,6 @@ http_bearer = HTTPBearer(auto_error=False)
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl='/users/login/'
 )
-
-
-def get_current_token_payload(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
-    """
-    Декодирует JWT-токен и возвращает его полезную нагрузку.
-    """
-    try:
-        logger.debug(f'Начинаю декодировать токен: {token}')
-        payload: dict[str, Any] = decode_jwt(token=token)
-        logger.debug(f"Декодированный токен: {payload}")
-        return payload
-    except JWTInvalidTokenError as ex:
-        logger.error(f"Ошибка декодирования токена: {ex}")
-        raise InvalidTokenError(detail='invalid token')
 
 
 def get_tokens_by_cookie(request: Request) -> dict[str, str]:
@@ -95,19 +81,20 @@ def set_tokens_cookie(
             f'Установка куки произошла с ошибкой. Ключ: {key!r}, значение: {value!r}, время жизни: {max_age!r} минут')
         raise SetCookieFailedError()
 
-# TODO fix token dep
+
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     redis = Depends(get_redis_client),
-) -> UserInDB:
+) -> dict:
     """
 
     """
     try:
-        payload = get_current_token_payload(token)
+        payload = decode_access_token(token)
 
-        user_id: int | None = int(payload.get("sub")) # type: ignore
         jti: str | None = payload.get("jti")
+        user_id: int | None = int(payload.get("sub")) # type: ignore
+        iat: int | None = payload.get("iat")
 
         if not user_id or not jti:
             raise InvalidTokenError("Missing required claims: sub or jti")
@@ -116,30 +103,29 @@ async def get_current_user(
         if await redis.exists(f"blacklist:access:{jti}"):
             raise TokenRevokedError()
 
-        user_data_from_db = await UsersRepo.select_user_by_user_id(user_id)
+        user = await UsersRepo.select_user_by_user_id(user_id)
 
         # Проверяем полученного user'а
-        if not user_data_from_db:
+        if not user:
             raise UserNotFoundError()
 
-        # Преобразуем данные из репозитория в Pydantic модель
-        user = UserInDB(
-            id=user_data_from_db.id,
-            username=user_data_from_db.username,
-            email=user_data_from_db.email,
-            hashed_password=user_data_from_db.hashed_password,
-            is_active=user_data_from_db.is_active,
-        )
-
-        return user
+        return {
+            'jti': jti,
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'is_active': user.is_active,
+            'iat': iat
+        }
     
     except JWTInvalidTokenError:
         raise InvalidTokenError()
 
 
 async def get_current_active_user(
-    current_user: Annotated[UserInDB, Depends(get_current_user)],
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
-    if not current_user.is_active:
-        raise UserInactiveError()
-    return current_user
+    if current_user["is_active"] == True:
+        return current_user
+    raise UserInactiveError()
+

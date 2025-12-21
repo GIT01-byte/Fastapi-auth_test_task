@@ -6,7 +6,10 @@ import jwt
 import bcrypt
 import hashlib
 
+from exceptions.exceptions import InvalidTokenError
 from config import settings
+
+from utils.logging import logger
 
 
 TOKEN_TYPE_FIELD = 'type'
@@ -30,6 +33,20 @@ def create_refresh_token() -> tuple[str, str]:
     token = secrets.token_urlsafe(64)
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     return token, token_hash
+
+
+def decode_access_token(token: str) -> dict[str, Any]:
+    """
+    Декодирует JWT-токен и возвращает его полезную нагрузку.
+    """
+    try:
+        logger.debug(f'Начинаю декодировать токен: {token}')
+        payload: dict[str, Any] = decode_jwt(token=token)
+        logger.debug(f"Декодированный токен: {payload}")
+        return payload
+    except jwt.PyJWTError as ex:
+        logger.error(f"Ошибка декодирования токена: {ex}")
+        raise InvalidTokenError(detail='invalid token')
 
 
 def hash_password(

@@ -25,7 +25,6 @@ from utils.security import (
 )
 from deps.auth_deps import (
     SessionDep, 
-    get_current_token_payload, 
     oauth2_scheme, 
     set_tokens_cookie,
 )

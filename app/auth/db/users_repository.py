@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, delete
 from pydantic import EmailStr
 
 from exceptions.exceptions import UserAlreadyExistsError
@@ -81,6 +81,12 @@ class RefreshTokensRepo():
             return await session.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
 
     @staticmethod
-    async def delete_refresh_token(token_obj: RefreshToken) -> None:
+    async def invalidate_all_refresh_tokens(user_id: int) -> None:
         async with db_manager.session_factory() as session:
-            await session.delete(token_obj)
+            query = (
+                delete(RefreshToken)
+                .where(RefreshToken.user_id == user_id)
+            )
+            await session.execute(query)
+            await session.commit()
+
