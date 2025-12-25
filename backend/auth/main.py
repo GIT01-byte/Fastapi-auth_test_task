@@ -11,6 +11,8 @@ from utils.logging import logger
 
 import tracemalloc
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 # Включаем отслеживание памяти, для дебага ошибок с ассинхронными функциями
 tracemalloc.start()
 
@@ -33,7 +35,11 @@ app.add_middleware(
 
 app.include_router(api_routers)
 
+# Подключаем админ панель
 setup_admin(app, db_manager.engine)
+
+# Подключаем prometheus метрики
+Instrumentator().instrument(app).expose(app)
 
 
 if __name__ == "__main__":
