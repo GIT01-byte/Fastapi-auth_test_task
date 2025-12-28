@@ -182,7 +182,8 @@ class RefreshTokensRepo:
 
     @staticmethod
     async def delete_refresh_token(token_obj: RefreshToken) -> None:
-        logger.debug(f"Попытка аннулировать refresh токен: {token_obj}")
+        logger.debug(f"Попытка аннулировать refresh токен: {token_obj.id}")
         async with db_manager.session_factory() as session:
             await session.delete(token_obj)
             await session.commit()
+            logger.info(f"Успешно аннулирован refresh токен {token_obj.id}.")
