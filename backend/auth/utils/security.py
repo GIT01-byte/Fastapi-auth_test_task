@@ -6,10 +6,10 @@ import jwt
 import bcrypt
 import hashlib
 
-from exceptions.exceptions import InvalidTokenError
-from core.settings import settings
+from backend.auth.exceptions.exceptions import InvalidTokenError
+from backend.auth.core.settings import settings
 
-from utils.logging import logger
+from backend.auth.utils.logging import logger
 
 
 TOKEN_TYPE_FIELD = 'type'
