@@ -1,3 +1,9 @@
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 from pathlib import Path
 import sys
 import loguru
@@ -13,17 +19,17 @@ logger.remove()  # Удаляем стандартный обработчик, �
 # Создаем свой, очень подробный формат с тегами
 custom_format = (
     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-    "<level>{level: <8}</level> | " # <level> отвечает за цвет уровня
-    "<cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>" # и здесь тоже
+    "<level>{level: <8}</level> | "  # <level> отвечает за цвет уровня
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>"  # и здесь тоже
 )
 logger.add(
     f"{LOGS_DIR}/logs.log",
     rotation="10 Mb",
     retention="1 week",
     compression="gz",
-    format=custom_format, 
+    format=custom_format,
     colorize=True,
-    backtrace=True, 
+    backtrace=True,
     diagnose=True,
     enqueue=True,
 )

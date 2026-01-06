@@ -17,6 +17,9 @@ class TestTokens:
 class TestApi:
     @pytest.mark.asyncio
     async def test_unauthorize_user(self):
-        async with AsyncClient(transport=ASGITransport(app=app)) as ac:
-            response = ac.get("/users/me/")
-            print(response)
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://127.0.0.1:8080"
+        ) as ac:
+            response = await ac.get("/users/me/")
+            assert response.status_code == 401

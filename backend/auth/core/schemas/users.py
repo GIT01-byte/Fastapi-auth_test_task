@@ -1,3 +1,9 @@
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 from datetime import datetime
 from typing import Annotated, Any, List, Optional
 
@@ -11,9 +17,7 @@ class UserRead(BaseModel):
     email: Annotated[EmailStr, None]
     is_active: bool
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class JWTPayload(BaseModel):

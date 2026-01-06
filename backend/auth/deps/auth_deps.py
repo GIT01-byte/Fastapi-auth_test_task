@@ -1,3 +1,9 @@
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 from fastapi import Depends, Response
 from fastapi.security import OAuth2PasswordBearer
 from redis import Redis
@@ -49,22 +55,22 @@ def set_tokens_cookie(response: Response, access_token: str, refresh_token: str)
     try:
         # 1. Очищаем куки
         clear_cookie_with_tokens(response=response)
-        
-        # 2. Устанавляиваем токены в куки 
+
+        # 2. Устанавляиваем токены в куки
         response.set_cookie(
             key=ACCESS_TOKEN_TYPE,
             value=access_token,
-            httponly=True,           # Доступно только через HTTP
-            secure=True,             # Используется только по HTTPS
-            samesite="strict",       # Предотвращение межсайтового отслеживания
+            httponly=True,  # Доступно только через HTTP
+            secure=True,  # Используется только по HTTPS
+            samesite="strict",  # Предотвращение межсайтового отслеживания
             max_age=settings.jwt.access_token_expire_minutes * 60,
         )
         response.set_cookie(
             key=REFRESH_TOKEN_TYPE,
             value=refresh_token,
-            httponly=True,           # Доступно только через HTTP
-            secure=True,             # Используется только по HTTPS
-            samesite="strict",       # Предотвращение межсайтового отслеживания
+            httponly=True,  # Доступно только через HTTP
+            secure=True,  # Используется только по HTTPS
+            samesite="strict",  # Предотвращение межсайтового отслеживания
             max_age=settings.jwt.refresh_token_expire_days * 60,
         )
     except Exception as exc:
@@ -108,12 +114,12 @@ async def get_current_user(
             raise UserNotFoundError()
 
         return {
-            'jti': jti,
-            'user_id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'is_active': user.is_active,
-            'iat': iat
+            "jti": jti,
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "iat": iat,
         }
 
     except PyJWTError as err:
@@ -129,6 +135,6 @@ async def get_current_active_user(current_user: dict = Depends(get_current_user)
     :raises UserInactiveError: Если пользователь неактивен
     :return: Активный пользователь
     """
-    if current_user['is_active'] == True:
+    if current_user["is_active"] == True:
         return current_user
     raise UserInactiveError()

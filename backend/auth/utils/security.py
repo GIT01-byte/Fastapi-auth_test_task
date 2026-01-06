@@ -1,3 +1,9 @@
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 import secrets
 from typing import Any, Union
 from datetime import timedelta, datetime, timezone
@@ -6,34 +12,38 @@ import jwt
 import bcrypt
 import hashlib
 
-from backend.auth.exceptions.exceptions import InvalidTokenError
-from backend.auth.core.settings import settings
-from backend.auth.core.schemas import JWTPayload
+from exceptions.exceptions import InvalidTokenError
+from core.settings import settings
+from core.schemas import JWTPayload
 
-from backend.auth.utils.logging import logger
+from utils.logging import logger
 
 
-TOKEN_TYPE_FIELD = 'type'
-ACCESS_TOKEN_TYPE = 'access'
-REFRESH_TOKEN_TYPE = 'refresh'
+TOKEN_TYPE_FIELD = "type"
+ACCESS_TOKEN_TYPE = "access"
+REFRESH_TOKEN_TYPE = "refresh"
 
 
 def create_access_token(user_id: int) -> str:
     """
     Создает новый access-токен для указанного пользователя.
-    
+
     :param user_id: Идентификатор пользователя
     :return: Строка с новым access-токеном
     """
     if isinstance(user_id, int):
         jti = secrets.token_urlsafe(16)
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.jwt.access_token_expire_minutes
+        )
         jwt_payload = JWTPayload(
             sub=str(user_id),
             exp=expire,
             jti=jti,
         )
-        logger.info(f"Создаем access-токен для пользователя с ID={user_id}, срок действия до {expire.isoformat()}")
+        logger.info(
+            f"Создаем access-токен для пользователя с ID={user_id}, срок действия до {expire.isoformat()}"
+        )
         return encode_jwt(payload=jwt_payload)
     raise TypeError
 
@@ -41,7 +51,7 @@ def create_access_token(user_id: int) -> str:
 def create_refresh_token() -> tuple[str, str]:
     """
     Генерирует новый refresh-токен и его хэшированное значение.
-    
+
     :return: Кортеж (refresh-token, хэш refresh-токена)
     """
     token = secrets.token_urlsafe(64)
@@ -59,7 +69,7 @@ def hash_token(token: str) -> str:
 def decode_access_token(token: str) -> dict[str, Any]:
     """
     Декодирует JWT-токен и проверяет его действительность.
-    
+
     :param token: Токен для декодирования
     :raises InvalidTokenError: Если токен недействителен
     :return: Полезная нагрузка токена
@@ -69,13 +79,13 @@ def decode_access_token(token: str) -> dict[str, Any]:
         return payload
     except jwt.PyJWTError as ex:
         logger.error(f"Ошибка декодирования токена: {ex}")
-        raise InvalidTokenError(detail='invalid token')
+        raise InvalidTokenError(detail="invalid token")
 
 
 def hash_password(password: str) -> bytes:
     """
     Хеширует пароль с использованием алгоритма bcrypt.
-    
+
     :param password: Пароль в виде строки
     :return: Байтовые данные зашифрованного пароля
     """
@@ -89,14 +99,18 @@ def hash_password(password: str) -> bytes:
 def check_password(password: str, hashed_password: bytes) -> bool:
     """
     Проверяет соответствие введенного пароля хранимому хэшу.
-    
+
     :param password: Входящий пароль
     :param hashed_password: Хэшированный пароль из базы данных
     :return: True, если пароль совпадает, иначе False
     """
     if isinstance(password, str) and isinstance(hashed_password, bytes):
-        result = bcrypt.checkpw(password=password.encode(), hashed_password=hashed_password)
-        logger.debug(f"Результат сравнения паролей: {'совпадает' if result else 'не совпадает'}")
+        result = bcrypt.checkpw(
+            password=password.encode(), hashed_password=hashed_password
+        )
+        logger.debug(
+            f"Результат сравнения паролей: {'совпадает' if result else 'не совпадает'}"
+        )
         return result
     raise TypeError
 
@@ -110,7 +124,7 @@ def encode_jwt(
 ) -> str:
     """
     Кодирует полезные данные в JWT-токен с указанием срока действия.
-    
+
     :param payload: Данные для шифрования
     :param private_key: Приватный ключ RSA для подписи токена
     :param algorithm: Алгоритм шифрования
@@ -137,7 +151,7 @@ def decode_jwt(
 ) -> dict[str, Any]:
     """
     Декодирует JWT-токен и извлекает полезные данные.
-    
+
     :param token: Закодированный JWT-токен
     :param public_key: Открытый ключ RSA для расшифровки
     :param algorithm: Алгоритм шифрования
