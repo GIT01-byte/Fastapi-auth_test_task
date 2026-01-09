@@ -361,11 +361,13 @@ class AuthService:
             ) from e
 
     async def loggout_user_logic(self, response: Response, access_jti: str, user_id: int):
-        """_summary_
+        """
+        Процедура выхода текущего пользователя из системы
 
         Args:
-            response (Response): _description_
-            user_dict (dict): _description_
+            response(Response): Объект Response FastAPI 
+            access_jti(str): Строка уникального индефикатора access токена 
+            user_id(int): ID текущего пользвателя 
         """
         try:
             # 1. Получение клиента Redis
